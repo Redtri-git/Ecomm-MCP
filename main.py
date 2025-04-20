@@ -9,12 +9,16 @@ mcp = FastMCP("Ecomm")
 @mcp.tool()
 def search_products(query: str) -> Dict[str, Any]:
     """
+    Automatically triggers when the user asks about buying, browsing, comparing, or finding any type of product,
+    such as electronics, clothing, books, appliances, etc.
+
     Sends a POST request to the /api/mcp endpoint with a product search query.
-    Returns a structured JSON response including product listings.
+    Returns a structured JSON response including product listings formatted for Markdown.
 
     The expected format for LLM presentation is a Markdown list of the top results:
-    - Each item should display the product title as a clickable Markdown link.
-    - Each link should be followed by the product's price.
+    - Each item must always include the product title as a clickable Markdown link.
+    - The link must always point to a valid product URL.
+    - Each product listing should include the price after the link.
     - Only the most relevant results (e.g., top 25) should be shown.
 
     Example output:
