@@ -22,12 +22,16 @@ uv run mcp dev main.py
 ## 🔌 Install for Claude
 
 To register and install this tool with Claude:
+```bash
 uv run mcp install main.py
+```
+
 After installation, go to:
 
-
 Claude > Settings > Developer > Edit Config
+
 Find or add your configuration for the tool in claude_desktop_config.json. It should look like this:
+
 ```bash
 {
   "mcpServers": {
