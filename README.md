@@ -16,8 +16,9 @@ This is a minimal MCP (Multi-Command Protocol) server implementation for product
 ## 🧪 Local Development
 
 To run this MCP server in development mode:
+```bash
 uv run mcp dev main.py
-
+```
 ## 🔌 Install for Claude
 
 To register and install this tool with Claude:
@@ -27,7 +28,7 @@ After installation, go to:
 
 Claude > Settings > Developer > Edit Config
 Find or add your configuration for the tool in claude_desktop_config.json. It should look like this:
-
+```bash
 {
   "mcpServers": {
     "Ecomm": {
@@ -45,4 +46,5 @@ Find or add your configuration for the tool in claude_desktop_config.json. It sh
     }
   }
 }
+```
 🔧 Update the path in the last argument to the correct location of your main.py.
