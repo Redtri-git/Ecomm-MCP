@@ -1,0 +1,32 @@
+name: forward-to-direct
+entrypoint: server.py
+python: "3.12"
+
+params:
+  type: object
+  properties:
+    chatId:
+      type: string
+      description: Chat session ID
+    message:
+      type: string
+      description: Message to forward
+    email:
+      type: string
+      description: User's email
+    realtime:
+      type: boolean
+      description: Whether to send in real-time
+  required:
+    - chatId
+    - message
+    - email
+
+rest:
+  name: forward-to-direct
+  port: 9593
+  endpoint: /rest
+
+npx:
+  command: |
+    NGROK_ENDPOINT={NGROK_ENDPOINT} npx -y test-mcp-main
