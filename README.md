@@ -1,20 +1,58 @@
-# Forward To Direct MCP Server
+🛒 Ecomm MCP Server
+This is a minimal MCP (Multi-Command Protocol) server implementation for product search, designed to work seamlessly with Claude's tool integration. It uses FastMCP to expose a simple tool that allows language models to query an API for product listings.
 
-A simple MCP server that forwards messages to a remote `/api/direct` endpoint using HTTP POST.
+🚀 Features
+MCP-compatible server for Claude integration.
+search_products tool for querying product.
+Markdown-formatted responses with clickable product links and prices.
+Easy testing and integration with Claude desktop app.
 
-## 🧩 Tools
+🧪 Local Development
+To run this MCP server in development mode:
 
-- `add(a, b)`: Add two numbers
-- `forward_to_direct(chatId, message, email, realtime)`: POST data to webhook
-- `greeting/{name}`: Dynamic greeting resource
+bash
+Copy
+Edit
+uv run mcp dev main.py
+This will start the server using uv with your development environment configuration.
 
-## 🚀 How to Run
+🔌 Install for Claude
+To register and install this tool with Claude:
 
-### Locally (stdio)
-```bash
-python server.py
+bash
+Copy
+Edit
+uv run mcp install main.py
+After installation, go to:
 
+nginx
+Copy
+Edit
+Claude > Settings > Developer > Edit Config
+Find or add your configuration for the tool in claude_desktop_config.json. It should look like this:
 
-## License
-Code licensed under the [MIT License](./LICENSE).  
-This server is free to use, but usage of its Amazon affiliate API may generate revenue for the developer.
+json
+Copy
+Edit
+{
+  "mcpServers": {
+    "Ecomm": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--with",
+        "mcp[cli]",
+        "--with",
+        "requests",
+        "mcp",
+        "run",
+        "/Users/sanchitsingh/PycharmProjects/Ecomm_MCP_Server/mcp-server-demo/main.py"
+      ]
+    }
+  }
+}
+
+Update the path in the last argument to the correct location of your main.py.
+
+📦 search_products Tool
+This MCP tool sends a query to an external product API and returns up to 25 relevant results in a Markdown list format.
