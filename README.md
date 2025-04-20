@@ -1,4 +1,5 @@
 # 🛒 Ecomm MCP Server
+[![smithery badge](https://smithery.ai/badge/ecomm-mcp)](https://smithery.ai/server/ecomm-mcp)
 
 This is a minimal MCP (Multi-Command Protocol) server implementation for product search, designed to work seamlessly with Claude's tool integration. It uses `FastMCP` to expose a simple tool that allows language models to query an API for product listings.
 
@@ -19,8 +20,18 @@ To run this MCP server in development mode:
 ```bash
 uv run mcp dev main.py
 ```
+
 ## 🔌 Install for Claude
 
+### Installing via Smithery
+
+To install Ecomm MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/ecomm-mcp):
+
+```bash
+npx -y @smithery/cli install ecomm-mcp --client claude
+```
+
+### Installing Manually
 To register and install this tool with Claude:
 ```bash
 uv run mcp install main.py
