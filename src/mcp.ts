@@ -1,0 +1,199 @@
+#!/usr/bin/env node
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+
+import z from "zod";
+
+import dotenv from 'dotenv';
+
+import express from 'express';
+
+import {
+  CallToolResult,
+  TextContentSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+
+const axios = require('axios')
+
+dotenv.config();
+
+let isStdioTransport = false;
+
+function safeLog(level, data) {
+  if (isStdioTransport) {
+    // For stdio transport, log to stderr to avoid protocol interference
+    console.error(
+      `[${level}] ${typeof data === 'object' ? JSON.stringify(data) : data}`
+    );
+  } else {
+    // For other transport types, use the normal logging mechanism
+    //server.sendLoggingMessage({ level, data });
+  }
+}
+
+async function scrape(query: string) {
+  const endpoint_url = "https://deciding-pelican-overly.ngrok-free.app/api/mcp";
+
+  const payload = {
+    "query": query
+  }
+  //const headers = { "Content-Type": "application/json" }
+  try {
+    let response = await axios.post(endpoint_url,
+        payload);
+    return {
+      "status_code": response.status_code,
+      "response": response.data
+    };
+  }
+  catch (e) {
+    return { "error": e.message };
+  }
+}
+
+const mcpTitle = 'Redtry Product Scraper';
+
+const server = new McpServer(
+  {
+    name: mcpTitle,
+    version: '1.7.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+      logging: {},
+    },
+  }
+);
+
+
+server.tool(
+  'search_for_products',
+  { query: z.string() },
+  async ({ query }) => {
+    const startTime = Date.now();
+    //try {
+      // Log incoming request with timestamp
+      safeLog(
+        'info',
+        `Received request for search_for_products`
+      );
+
+      if (query.length === 0) {
+        throw new Error('No arguments provided');
+      }
+      const scrapeStartTime = Date.now();
+      safeLog(
+        'info',
+        `Starting scrape for query: ${query} with options}`
+      );
+
+      const response = await scrape(query);
+
+      //const content = {
+      //  content: [{
+      //    type: "text",
+      //    text: JSON.stringify(response, null, 2)
+      //  }]
+      //};
+      // Log performance metrics
+      safeLog(
+        'info',
+        `Scrape completed in ${Date.now() - scrapeStartTime}ms`
+      );
+      const cont_list: z.infer<typeof TextContentSchema>[] = [{
+          type: "text",
+          text: JSON.stringify(response, null, 2)
+        }];
+      const content_list: CallToolResult = {content: cont_list};
+      return content_list;
+
+    //} catch (error) {
+    //  safeLog('info','error');
+    //  // Log detailed error information
+    //  safeLog('error', {
+    //    message: `Request failed: ${error instanceof Error ? error.message : String(error)
+    //      }`,
+    //    tool: 'search_for_products',
+    //    arguments: { 'query': query },
+    //    timestamp: new Date().toISOString(),
+    //    duration: Date.now() - startTime,
+    //  });
+      //return {
+      //  content: [
+      //    {
+      //      type: 'text',
+      //      text: trimResponseText(
+      //        `Error: ${error instanceof Error ? error.message : String(error)}`
+      //      )
+      //    },
+      //  ],
+      //  isError: true,
+      //};
+    //} finally {
+    //  // Log request completion with performance metrics
+    //  safeLog('info', `Request completed in ${Date.now() - startTime}ms`);
+    //}
+  });
+  
+
+// Server startup
+async function runLocalServer() {
+  try {
+    console.error(`Initializing ${mcpTitle} Server...`);
+
+    const transport = new StdioServerTransport();
+
+    isStdioTransport = true;
+
+    await server.connect(transport);
+
+    // Now that we're connected, we can send logging messages
+    safeLog('info', `${mcpTitle} MCP Server initialized successfully`);
+
+    console.error(`${mcpTitle} MCP Server running on stdio`);
+  } catch (error) {
+    console.error('Fatal error running server:', error);
+    process.exit(1);
+  }
+}
+async function runSSELocalServer() {
+  let transport = null;
+  const app = express();
+
+  app.get('/sse', async (req, res) => {
+    transport = new SSEServerTransport(`/messages`, res);
+    res.on('close', () => {
+      transport = null;
+    });
+    await server.connect(transport);
+  });
+
+  // Endpoint for the client to POST messages
+  // Remove express.json() middleware - let the transport handle the body
+  app.post('/messages', (req, res) => {
+    if (transport) {
+      transport.handlePostMessage(req, res);
+    }
+  });
+  console.log('exposed');
+}
+
+console.log('running');
+if (process.env.SSE_LOCAL === 'true') {
+  runSSELocalServer().catch((error) => {
+    console.log('Fatal error running server:', error);
+    process.exit(1);
+  });
+} else {
+  runLocalServer().catch((error) => {
+    console.log('Fatal error running server:', error);
+    process.exit(1);
+  });
+}
+
+function trimResponseText(text: string): string {
+  return text.trim();
+}
