@@ -1,14 +1,22 @@
 {
-  "name": "ecommmcp2",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "redtry-product-scraper-mcp",
+  "version": "1.0.1",
+  "main": "dist/mcp.js",
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('dist/index.js', '755')\"",
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/mcp.js', '755')\"",
     "test": "node dist/mcp.test.js",
     "start": "node dist/mcp.js",
     "prepare": "npm run build",
     "publish": "npm run build && npm publish"
   },
+  "bin": {
+    "product-scraper": "dist/mcp.js"
+  },
+  "files": [
+    "src/",
+    "dist/",
+    "tsconfig.json"
+  ],
   "keywords": [],
   "author": "",
   "license": "MIT",
@@ -34,6 +42,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mendableai/firecrawl-mcp-server.git"
+    "url": "https://github.com/Redtri-git/Ecomm-MCP"
   },
+  "private": false
 }
