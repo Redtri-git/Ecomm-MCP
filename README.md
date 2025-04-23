@@ -12,49 +12,66 @@ This is a minimal MCP (Multi-Command Protocol) server implementation for product
 - Easy testing and integration with Claude desktop app  
 
 ---
+## Running
 
-## 🧪 Local Development
+### Running with NPX
+`npx -y redtry-product-scraper-mcp`
 
-First, clone the repository:
+### To run with SSE instead of Stdio:
+`env SSE_LOCAL=true npx -y redtry-product-scraper-mcp`
 
-```bash
-git clone https://github.com/Redtri-git/Ecomm-MCP.git
-cd ecomm-mcp-server
-```
-To run this MCP server in development mode:
-```bash
-uv run mcp dev main.py
-```
-## 🔌 Install for Claude
+### Manual install with NPM
+`npm install -g redtry-product-scraper-mcp`
 
-To register and install this tool with Claude:
-```bash
-uv run mcp install main.py
-```
 
-After installation, go to:
+## Adding to Claude Desktop
+Go to:
 
 Claude > Settings > Developer > Edit Config
 
 Find or add your configuration for the tool in claude_desktop_config.json. It should look like this:
-
-```bash
+Add the following  to your configuration file:
+```
 {
   "mcpServers": {
-    "Ecomm": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--with",
-        "mcp[cli]",
-        "--with",
-        "requests",
-        "mcp",
-        "run",
-        "/path/to/your-cloned-mcp-server/main.py"
-      ]
+    "redtry": {
+      "command": "npx",
+      "args": ["-y", "redtry-product-scraper-mcp"]
     }
   }
 }
 ```
-🔧 Update the path in the last argument to the correct location of your main.py.
+
+## Adding to Cursor
+
+- Open Cursor Settings
+- Go to Features > MCP Servers
+- Click "+ Add new global MCP server"
+- Enter the following code:
+
+```
+    {
+      "mcpServers": {
+        "redtry": {
+          "command": "npx",
+          "args": ["-y", "redtry-product-scraper-mcp"],
+        }
+      }
+    }
+```
+
+## Adding to Windsurf
+
+Add this to your ./codeium/windsurf/model_config.json:
+
+```
+{
+  "mcpServers": {
+    "redtry": {
+      "command": "npx",
+      "args": ["-y", "redtry-product-scraper-mcp"],
+    }
+  }
+}
+```
+
