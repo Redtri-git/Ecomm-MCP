@@ -28,29 +28,23 @@ function safeLog(level, data) {
       `[${level}] ${typeof data === 'object' ? JSON.stringify(data) : data}`
     );
   } else {
-    // For other transport types, use the normal logging mechanism
-    //server.sendLoggingMessage({ level, data });
+    server.server.sendLoggingMessage({ level, data });
   }
 }
 
 async function scrape(query: string) {
   const endpoint_url = "https://deciding-pelican-overly.ngrok-free.app/api/mcp";
+  //const endpoint_url = "http://localhost:5001/api/mcp";
 
   const payload = {
     "query": query
   }
-  //const headers = { "Content-Type": "application/json" }
-  try {
-    let response = await axios.post(endpoint_url,
-        payload);
-    return {
-      "status_code": response.status_code,
-      "response": response.data
-    };
-  }
-  catch (e) {
-    return { "error": e.message };
-  }
+  let response = await axios.post(endpoint_url,
+    payload);
+  return {
+    "status_code": response.status_code,
+    "response": response.data
+  };
 }
 
 const mcpTitle = 'Redtry Product Scraper';
@@ -58,7 +52,7 @@ const mcpTitle = 'Redtry Product Scraper';
 const server = new McpServer(
   {
     name: mcpTitle,
-    version: '1.7.0',
+    version: '1.0.2',
   },
   {
     capabilities: {
@@ -74,7 +68,7 @@ server.tool(
   { query: z.string() },
   async ({ query }) => {
     const startTime = Date.now();
-    //try {
+    try {
       // Log incoming request with timestamp
       safeLog(
         'info',
@@ -86,78 +80,66 @@ server.tool(
       }
       const scrapeStartTime = Date.now();
       safeLog(
-        'info',
+        'debug',
         `Starting scrape for query: ${query} with options}`
       );
 
       const response = await scrape(query);
 
-      //const content = {
-      //  content: [{
-      //    type: "text",
-      //    text: JSON.stringify(response, null, 2)
-      //  }]
-      //};
-      // Log performance metrics
       safeLog(
-        'info',
+        'debug',
         `Scrape completed in ${Date.now() - scrapeStartTime}ms`
       );
       const cont_list: z.infer<typeof TextContentSchema>[] = [{
-          type: "text",
-          text: JSON.stringify(response, null, 2)
-        }];
-      const content_list: CallToolResult = {content: cont_list};
+        type: "text",
+        text: JSON.stringify(response, null, 2)
+      }];
+      const content_list: CallToolResult = { content: cont_list };
       return content_list;
 
-    //} catch (error) {
-    //  safeLog('info','error');
-    //  // Log detailed error information
-    //  safeLog('error', {
-    //    message: `Request failed: ${error instanceof Error ? error.message : String(error)
-    //      }`,
-    //    tool: 'search_for_products',
-    //    arguments: { 'query': query },
-    //    timestamp: new Date().toISOString(),
-    //    duration: Date.now() - startTime,
-    //  });
-      //return {
-      //  content: [
-      //    {
-      //      type: 'text',
-      //      text: trimResponseText(
-      //        `Error: ${error instanceof Error ? error.message : String(error)}`
-      //      )
-      //    },
-      //  ],
-      //  isError: true,
-      //};
-    //} finally {
-    //  // Log request completion with performance metrics
-    //  safeLog('info', `Request completed in ${Date.now() - startTime}ms`);
-    //}
+    } catch (error) {
+      // Log detailed error information
+      safeLog('error', {
+        message: `Request failed: ${error instanceof Error ? error.message : String(error)
+          }`,
+        tool: 'search_for_products',
+        arguments: { 'query': query },
+        timestamp: new Date().toISOString(),
+        duration: Date.now() - startTime,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: trimResponseText(
+              `Error: ${error instanceof Error ? error.message : String(error)}`
+            )
+          },
+        ],
+        isError: true,
+      };
+    } finally {
+      // Log request completion with performance metrics
+      safeLog('debug', `Request completed in ${Date.now() - startTime}ms`);
+    }
   });
-  
+
+function trimResponseText(text: string): string {
+  return text.trim();
+}
 
 // Server startup
 async function runLocalServer() {
-  try {
-    console.error(`Initializing ${mcpTitle} Server...`);
+  const transport = new StdioServerTransport();
 
-    const transport = new StdioServerTransport();
+  isStdioTransport = true;
 
-    isStdioTransport = true;
+  await server.connect(transport);
 
-    await server.connect(transport);
+  // Now that we're connected, we can send logging messages
+  safeLog('debug', `${mcpTitle} MCP Server initialized successfully`);
 
-    // Now that we're connected, we can send logging messages
-    safeLog('info', `${mcpTitle} MCP Server initialized successfully`);
-
-    console.error(`${mcpTitle} MCP Server running on stdio`);
-  } catch (error) {
-    console.error('Fatal error running server:', error);
-    process.exit(1);
-  }
+  safeLog('debug', `${mcpTitle} MCP Server running on stdio`);
 }
 async function runSSELocalServer() {
   let transport = null;
@@ -178,22 +160,16 @@ async function runSSELocalServer() {
       transport.handlePostMessage(req, res);
     }
   });
-  console.log('exposed');
 }
 
-console.log('running');
 if (process.env.SSE_LOCAL === 'true') {
   runSSELocalServer().catch((error) => {
-    console.log('Fatal error running server:', error);
+    safeLog('error', `Fatal error running server: ${error}`);
     process.exit(1);
   });
 } else {
   runLocalServer().catch((error) => {
-    console.log('Fatal error running server:', error);
+    safeLog('error', `Fatal error running server: ${error}`);
     process.exit(1);
   });
-}
-
-function trimResponseText(text: string): string {
-  return text.trim();
 }

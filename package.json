@@ -1,6 +1,7 @@
 {
   "name": "redtry-product-scraper-mcp",
-  "version": "1.0.1",
+   "description": "Connect your LLM to Amazon’s product catalog and display real-time results directly in chat. Easily browse, compare, and buy products — all inside your AI agent, chatbot, or tool.",
+  "version": "1.0.3",
   "main": "dist/mcp.js",
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('dist/mcp.js', '755')\"",
