@@ -12,10 +12,13 @@ import express from 'express';
 
 import {
   CallToolResult,
+  ImageContentSchema,
   TextContentSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
 const axios = require('axios')
+
+import { lookup as mimeLookup } from "mime-types";
 
 dotenv.config();
 
@@ -28,23 +31,51 @@ function safeLog(level, data) {
       `[${level}] ${typeof data === 'object' ? JSON.stringify(data) : data}`
     );
   } else {
-    server.server.sendLoggingMessage({ level, data });
+    try {
+      server.server.sendLoggingMessage({ level, data });
+    }
+    catch (error) {
+      console.error(
+        `[${level}] ${typeof data === 'object' ? JSON.stringify(data) : data}`);
+      console.error(`Failed to log to SSE server ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 }
 
 async function scrape(query: string) {
-  const endpoint_url = "https://deciding-pelican-overly.ngrok-free.app/api/mcp";
-  //const endpoint_url = "http://localhost:5001/api/mcp";
+  //const endpoint_url = "https://deciding-pelican-overly.ngrok-free.app/api/mcp";
+  const endpoint_url = "http://localhost:5001/api/mcp";
 
   const payload = {
     "query": query
   }
   let response = await axios.post(endpoint_url,
     payload);
+  if (response.status != 200){
+    throw new Error("Failed to reach API");
+  }
   return {
-    "status_code": response.status_code,
-    "response": response.data
+    "status_code": response.status,
+    "data": response.data
   };
+}
+
+async function fetchImage(url){
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer'
+  });
+
+  if (response.status != 200){
+    throw new Error("Failed to get Image");
+  }
+
+  const buffer = Buffer.from(response.data);
+  const base64Data = buffer.toString('base64');
+
+  const mimeType = response.headers['content-type'] ||
+                   mimeLookup(url) ||
+                   'application/octet-stream';
+  return [base64Data, mimeType];
 }
 
 const mcpTitle = 'Redtry Product Scraper';
@@ -77,7 +108,7 @@ server.tool(
 
       if (query.length === 0) {
         throw new Error('No arguments provided');
-      }
+      }           
       const scrapeStartTime = Date.now();
       safeLog(
         'debug',
@@ -86,14 +117,34 @@ server.tool(
 
       const response = await scrape(query);
 
+      // convert to string
+      let cont_list = []
+      for (const product of response.data){
+        const title = product.title
+        const price = product.price
+        const url = product.product_url
+        let line =`- [${title}](${url}) - ${price}`;
+        cont_list.push({
+          type: "text",
+          text: line
+        });
+        const fetchImageResp = await fetchImage(product.image_url);
+        const imageData: string = fetchImageResp[0]; // asdafafsdffdsdafasdfa
+        const imageMimeType: string = fetchImageResp[1];
+        safeLog('debug', `url: ${product.image_url}`)
+        const image: z.infer<typeof ImageContentSchema> = {
+          type: "image",
+          data: imageData,
+          mimeType: imageMimeType
+        }
+        cont_list.push(image)
+        
+      }
       safeLog(
         'debug',
         `Scrape completed in ${Date.now() - scrapeStartTime}ms`
       );
-      const cont_list: z.infer<typeof TextContentSchema>[] = [{
-        type: "text",
-        text: JSON.stringify(response, null, 2)
-      }];
+
       const content_list: CallToolResult = { content: cont_list };
       return content_list;
 
@@ -130,9 +181,9 @@ function trimResponseText(text: string): string {
 
 // Server startup
 async function runLocalServer() {
-  const transport = new StdioServerTransport();
-
   isStdioTransport = true;
+
+  const transport = new StdioServerTransport();
 
   await server.connect(transport);
 
